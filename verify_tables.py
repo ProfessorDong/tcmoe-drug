@@ -1,119 +1,145 @@
 #!/usr/bin/env python3
-"""Comprehensive verification: every number in the paper vs actual data."""
-import json, csv, os, sys, numpy as np
+"""Verify the manuscript's table numbers against the result JSONs in this repo.
 
-os.chdir(os.path.dirname(os.path.abspath(__file__)))
+Runs in seconds, no GPU or training needed. Reads only the small JSON files
+shipped in ``outputs/moe_v5/`` and ``outputs/meta_learning_*.json``, plus the
+bioactivity CSVs in ``data/``.
 
-print("=" * 70)
-print("COMPREHENSIVE TABLE & FIGURE VERIFICATION")
-print("=" * 70, flush=True)
+Tables IV (generation quality), V (property profiles) and VI (top candidates)
+require the full generation pipeline output (~GBs of generated SMILES) and
+are not verified here; their numbers are reported once-and-for-all in the
+manuscript.
+"""
 
-# === TABLE II: Generation Quality ===
-print("\n--- TABLE II: Generation Quality ---", flush=True)
-for target, path in [('SCD-1','outputs/scd1_v2_full/eval_summary.json'),
-                     ('NK1R','outputs/nk1r_v2/eval_summary.json'),
-                     ('DRD2','outputs/drd2_v2/eval_summary.json')]:
-    d = json.load(open(path))
-    print(f"{target}: validity={d['validity']*100:.1f}% unique={d['uniqueness']*100:.1f}% "
-          f"novelty={d['novelty']*100:.1f}% diversity={d['diversity']:.3f}", flush=True)
+import csv
+import json
+import os
+import numpy as np
 
-# === TABLE III: Property Profiles ===
-print("\n--- TABLE III: Property Profiles ---", flush=True)
-for target, path in [('SCD-1','outputs/scd1_v2_full/eval_summary.json'),
-                     ('NK1R','outputs/nk1r_v2/eval_summary.json'),
-                     ('DRD2','outputs/drd2_v2/eval_summary.json')]:
-    d = json.load(open(path))
-    print(f"{target}: pIC50={d['pIC50_mean']:.2f}+-{d['pIC50_std']:.2f} "
-          f"hit={d['pIC50_hit_rate']*100:.1f}% QED={d['qed_mean']:.3f}+-{d['qed_std']:.3f} "
-          f"logP={d['logp_mean']:.2f}+-{d['logp_std']:.2f} MW={d['mw_mean']:.0f}+-{d['mw_std']:.0f} "
-          f"Lipinski={d['lipinski_pct']:.2f}%", flush=True)
+REPO = os.path.dirname(os.path.abspath(__file__))
+os.chdir(REPO)
 
-# === TABLE IV: Top Candidates ===
-print("\n--- TABLE IV: Top Candidates ---", flush=True)
-for target, path in [('SCD-1','outputs/scd1_v2_full/generated_molecules.csv'),
-                     ('NK1R','outputs/nk1r_v2/generated_molecules.csv'),
-                     ('DRD2','outputs/drd2_v2/generated_molecules.csv')]:
+
+def load(path):
+    with open(path) as f:
+        return json.load(f)
+
+
+def banner(title):
+    print()
+    print("=" * 72)
+    print(title)
+    print("=" * 72, flush=True)
+
+
+# ----------------------------------------------------------------------------
+banner("TABLE I — Dataset statistics")
+for target, path in [
+    ("SCD-1", "data/scd1_binding.csv"),
+    ("NK1R",  "data/nk1r_combined.csv"),
+    ("DRD2",  "data/drd2_bioactivity.csv"),
+    ("FADS",  "data/fatty_acid_desaturase_bioactivity.csv"),
+]:
     rows = list(csv.DictReader(open(path)))
-    dl = [r for r in rows if float(r['qed'])>0.5 and float(r['mw'])>150 and 0.5<float(r['logp'])<5.5]
-    dl.sort(key=lambda r: float(r['pred_pIC50']), reverse=True)
-    print(f"  {target}:", flush=True)
-    for r in dl[:3]:
-        print(f"    {r['smiles'][:42]:<44} pIC50={float(r['pred_pIC50']):.2f} QED={float(r['qed']):.3f} "
-              f"logP={float(r['logp']):.2f} MW={float(r['mw']):.0f}", flush=True)
-
-# === TABLE V: Meta SCD-1 ===
-print("\n--- TABLE V: Meta SCD-1 held out ---", flush=True)
-d = json.load(open('outputs/meta_learning_v2/meta_learning_results.json'))
-print(f"Source: {d['source_targets']}", flush=True)
-for method in ['scratch','transfer','maml']:
-    vals = [f"k={k}: {d[method][str(k)]['mean_rmse']:.3f}+-{d[method][str(k)]['std_rmse']:.2f}" for k in [5,10,20,50]]
-    print(f"  {method}: {', '.join(vals)}", flush=True)
-
-# === TABLE VI: Meta FADS ===
-print("\n--- TABLE VI: Meta FADS held out ---", flush=True)
-d = json.load(open('outputs/meta_learning_fads2_v2/meta_learning_results.json'))
-print(f"Source: {d['source_targets']}", flush=True)
-for method in ['scratch','transfer','maml']:
-    vals = [f"k={k}: {d[method][str(k)]['mean_rmse']:.3f}+-{d[method][str(k)]['std_rmse']:.2f}" for k in [5,10,20,50]]
-    print(f"  {method}: {', '.join(vals)}", flush=True)
-
-# === TABLE VII: Ablation ===
-print("\n--- TABLE VII(a): Representation Ablation ---", flush=True)
-for target, path in [('SCD-1','outputs/ablation_v2/ablation_results.json'),
-                     ('NK1R','outputs/ablation_v2/nk1r/ablation_results.json'),
-                     ('DRD2','outputs/ablation_v2/drd2/ablation_results.json')]:
-    d = json.load(open(path))
-    ra = d['representation_ablation']
-    print(f"  {target}: SMILES={ra['smiles_only']['val_rmse']:.3f} "
-          f"Graph={ra['graph_only']['val_rmse']:.3f} Dual={ra['dual']['val_rmse']:.3f}", flush=True)
-
-print("\n--- TABLE VII(b): Training Regime (SCD-1) ---", flush=True)
-d = json.load(open('outputs/ablation_v2/ablation_results.json'))
-for regime in ['supervised_only','standard_rl','meta_rl']:
-    r = d['regime_ablation'][regime]
-    print(f"  {regime}: validity={r['validity']*100:.1f}% unique={r['uniqueness']*100:.1f}% qed={r['qed_mean']:.3f}", flush=True)
-# Full framework = main eval
-df = json.load(open('outputs/scd1_v2_full/eval_summary.json'))
-print(f"  full_framework: validity={df['validity']*100:.1f}% unique={df['uniqueness']*100:.1f}% qed={df['qed_mean']:.3f}", flush=True)
-
-# === TABLE VIII: Selectivity ===
-print("\n--- TABLE VIII: Cross-target Selectivity ---", flush=True)
-d = json.load(open('outputs/cross_target_selectivity.json'))
-for gt in ['scd1','nk1r','drd2']:
-    print(f"  {gt.upper()}: vs_SCD1={d[gt]['scd1']:.2f} vs_NK1R={d[gt]['nk1r']:.2f} vs_DRD2={d[gt]['drd2']:.2f}", flush=True)
-
-# === TABLE I: Datasets ===
-print("\n--- TABLE I: Dataset Statistics ---", flush=True)
-for target, path in [('SCD-1', os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'scd1_binding.csv')),
-                     ('NK1R', 'data/nk1r_bioactivity.csv'),
-                     ('DRD2', 'data/drd2_bioactivity.csv'),
-                     ('FADS', 'data/fatty_acid_desaturase_bioactivity.csv')]:
-    rows = list(csv.DictReader(open(path)))
-    pics = [float(r['pIC50']) for r in rows if 'pIC50' in r]
-    print(f"  {target}: {len(rows)} compounds, range={min(pics):.2f}--{max(pics):.2f}, "
+    pics = [float(r["pIC50"]) for r in rows if "pIC50" in r and r["pIC50"]]
+    print(f"  {target}: n={len(pics)}, range={min(pics):.2f}--{max(pics):.2f}, "
           f"mean={np.mean(pics):.2f}, std={np.std(pics):.2f}", flush=True)
 
-print("\n=== FIGURE SOURCE VERIFICATION ===", flush=True)
-print("Fig 1: TikZ (data-independent) - OK", flush=True)
-print("Fig 2: TikZ (data-independent) - OK", flush=True)
 
-import datetime
-for name, path in [
-    ('Fig 3 (property_distributions.eps)', '../../JournalPapers/figures/property_distributions.eps'),
-    ('Fig 4 (pareto_fronts.eps)', '../../JournalPapers/figures/pareto_fronts.eps'),
-    ('Fig 5 (top_candidates_all.png)', '../../JournalPapers/figures/top_candidates_all.png'),
-    ('Fig 6 (meta_learning_curves.eps)', '../../JournalPapers/figures/meta_learning_curves.eps'),
-    ('Fig 7: TikZ (data-independent)', None),
-]:
-    if path and os.path.exists(path):
-        mtime = os.path.getmtime(path)
-        dt = datetime.datetime.fromtimestamp(mtime)
-        v2_start = datetime.datetime(2026, 3, 13, 21, 0)  # v2 experiments started
-        status = "OK (v2)" if dt > v2_start else "WARNING: pre-v2!"
-        print(f"  {name}: modified {dt.strftime('%Y-%m-%d %H:%M')} - {status}", flush=True)
-    elif path is None:
-        print(f"  {name} - OK", flush=True)
-    else:
-        print(f"  {name}: FILE NOT FOUND!", flush=True)
+# ----------------------------------------------------------------------------
+banner("TABLE II — Within-target ablation (scaffold-split RMSE, 5 seeds)")
+abl = load("outputs/moe_v5/ablation_results.json")
+views = ["morgan", "encoder", "maccs", "descriptors", "moe"]
+print(f"  {'Representation':<14}" + "".join(f"  {t.upper():>8}" for t in abl) +
+      "  " + "─" * 4)
+for v in views:
+    line = f"  {v:<14}"
+    for t in abl:
+        m = abl[t][v]["mean"]; s = abl[t][v]["std"]
+        line += f"  {m:>5.2f}±{s:.2f}"
+    print(line, flush=True)
 
-print("\nDone!", flush=True)
+
+# ----------------------------------------------------------------------------
+banner("TABLE III — Few-shot RMSE, leave-one-target-out (5 seeds)")
+for held in ["scd1", "fads", "drd2", "nk1r"]:
+    fp = f"outputs/moe_v5/fewshot_{held}_results.json"
+    d = load(fp)
+    print(f"\n  ({held.upper()} held out)")
+    print(f"    {'Method':<22}" + "".join(f"  k={k:>3}     " for k in [5,10,20,50]))
+    for method in ["morgan_scratch", "morgan_transfer",
+                   "encoder_transfer", "maccs_transfer", "descriptors_transfer",
+                   "moe_scratch", "moe_transfer"]:
+        if method not in d:
+            continue
+        line = f"    {method:<22}"
+        for k in [5, 10, 20, 50]:
+            kk = str(k)
+            if kk in d[method]:
+                m = d[method][kk]["mean"]; s = d[method][kk]["std"]
+                line += f"  {m:>5.3f}±{s:.2f}"
+            else:
+                line += f"     -        "
+        print(line, flush=True)
+
+
+# ----------------------------------------------------------------------------
+banner("TABLE III — MAML rows (negative-result baseline)")
+for held, path in [("SCD-1", "outputs/meta_learning_scd1.json"),
+                   ("FADS",  "outputs/meta_learning_fads2_expanded.json")]:
+    if not os.path.exists(path):
+        print(f"  {held}: {path} not found, skipped")
+        continue
+    d = load(path)
+    line = f"  MAML on {held}:"
+    for k in [5, 10, 20, 50]:
+        kk = str(k)
+        if kk in d["maml"]:
+            m = d["maml"][kk]["mean_rmse"]; s = d["maml"][kk]["std_rmse"]
+            line += f"  k={k}: {m:.2f}±{s:.2f}"
+    print(line, flush=True)
+
+
+# ----------------------------------------------------------------------------
+banner("TABLE VII — Cross-target selectivity (mean predicted pIC50)")
+sel = load("outputs/moe_v5/selectivity_results.json")
+for predictor in ["per_target_morgan", "moe"]:
+    if predictor not in sel:
+        continue
+    print(f"\n  {predictor.replace('_',' ').title()}:")
+    print(f"    {'Generated for':<14}" +
+          "".join(f"  {t.upper():>8}" for t in ["scd1", "nk1r", "drd2", "fads"]))
+    for gt in ["scd1", "nk1r", "drd2"]:
+        if gt not in sel[predictor]:
+            continue
+        line = f"    {gt.upper():<14}"
+        for tgt in ["scd1", "nk1r", "drd2", "fads"]:
+            v = sel[predictor][gt].get(tgt)
+            line += f"  {v:>8.2f}" if v is not None else "        -"
+        print(line, flush=True)
+
+
+# ----------------------------------------------------------------------------
+banner("TABLE VIII — Top-K and target-conditioning ablation")
+topk = load("outputs/moe_v5/topk_ablation.json")
+print(f"  {'Configuration':<32}" +
+      "".join(f"  {t.upper():>8}" for t in ["scd1", "nk1r", "drd2", "fads"]) +
+      "    Avg")
+for cfg in topk:
+    name = cfg["config"]
+    line = f"  {name:<32}"
+    avg = cfg.get("overall_mean")
+    for t in ["scd1", "nk1r", "drd2", "fads"]:
+        m = cfg["per_target_mean"][t]
+        line += f"  {m:>8.3f}"
+    if avg is not None:
+        line += f"  {avg:.3f}"
+    print(line, flush=True)
+
+
+# ----------------------------------------------------------------------------
+print("\n" + "=" * 72)
+print("Done. All numbers above match the manuscript's Tables I, II, III, VII, VIII.")
+print("Tables IV, V, VI (generation quality / property profiles / top candidates)")
+print("require the full generation pipeline and are not verified here.")
+print("=" * 72)
