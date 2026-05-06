@@ -1,0 +1,22 @@
+# REINVENT 4 Transfer Learning Configuration Template
+# Focus a prior model towards a set of known actives
+#
+# Paths will be set programmatically by reinvent4_baseline.py
+
+run_type = "transfer_learning"
+device = "cuda:0"
+tb_logdir = "tb_TL"
+json_out_config = "_transfer_learning.json"
+
+[parameters]
+
+num_epochs = 50
+save_every_n_epochs = 10
+batch_size = 128
+num_refs = 0
+sample_batch_size = 128
+
+input_model_file = "__INPUT_MODEL_FILE__"
+smiles_file = "__SMILES_FILE__"
+output_model_file = "__OUTPUT_MODEL_FILE__"
+validation_smiles_file = "__VALIDATION_SMILES_FILE__"

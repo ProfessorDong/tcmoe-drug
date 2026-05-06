@@ -1,0 +1,16 @@
+# REINVENT 4 Sampling Configuration Template
+# Used to sample molecules from a trained/fine-tuned model
+#
+# Paths will be set programmatically by reinvent4_baseline.py
+
+run_type = "sampling"
+device = "cuda:0"
+json_out_config = "_sampling.json"
+
+[parameters]
+
+model_file = "__MODEL_FILE__"
+output_file = "__OUTPUT_FILE__"
+num_smiles = 1000
+unique_molecules = true
+randomize_smiles = true

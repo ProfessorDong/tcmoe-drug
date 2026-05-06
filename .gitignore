@@ -1,0 +1,67 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Model checkpoints (regeneratable, large)
+*.pt
+*.pth
+*.ckpt
+
+# Training/eval logs
+*.log
+*.tfevents.*
+
+# Generated molecule dumps (regeneratable, large)
+generated_molecules.csv
+
+# Figure intermediates (regeneratable from scripts)
+*.png
+figures/*.png
+# keep EPS and PDF as published artifacts
+!*.eps
+!*.pdf
+
+# Editor / OS
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*~
+
+# Virtualenv
+venv/
+env/
+.venv/
+*.egg-info/
+build/
+dist/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Backup
+*.bak
+*.bak~
+
+# Local-only experiment artifacts
+outputs/scd1_e2e*/
+outputs/scd1_v*/
+outputs/nk1r*/
+outputs/drd2*/
+outputs/fads*/
+outputs/ablation*/
+outputs/meta_learning_v*/
+outputs/meta_learning_fads2_v*/
+outputs/scd1/
+outputs/nk1r/
+outputs/drd2/
+outputs/fads/
+outputs/interpretability/
+outputs/moe_smoke*/
+outputs/fewshot_v*/
+outputs/cross_target_selectivity*
+
+# Allow only the canonical paper result JSONs
+!outputs/moe_v5/*.json
