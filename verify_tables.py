@@ -101,21 +101,25 @@ for held, path in [("SCD-1", "outputs/meta_learning_scd1.json"),
 
 
 # ----------------------------------------------------------------------------
-banner("TABLE VII — Cross-target selectivity (mean predicted pIC50)")
+banner("TABLE VII — Cross-target selectivity (mean ± std over 5 seeds)")
 sel = load("outputs/moe_v5/selectivity_results.json")
-for predictor in ["per_target_morgan", "moe"]:
+for predictor in ["morgan", "moe"]:
     if predictor not in sel:
         continue
-    print(f"\n  {predictor.replace('_',' ').title()}:")
+    label = "Per-target Morgan" if predictor == "morgan" else "MoE (ours)"
+    print(f"\n  {label}:")
     print(f"    {'Generated for':<14}" +
-          "".join(f"  {t.upper():>8}" for t in ["scd1", "nk1r", "drd2", "fads"]))
+          "".join(f"  {t.upper():>11}" for t in ["scd1", "nk1r", "drd2", "fads"]))
     for gt in ["scd1", "nk1r", "drd2"]:
         if gt not in sel[predictor]:
             continue
         line = f"    {gt.upper():<14}"
         for tgt in ["scd1", "nk1r", "drd2", "fads"]:
-            v = sel[predictor][gt].get(tgt)
-            line += f"  {v:>8.2f}" if v is not None else "        -"
+            cell = sel[predictor][gt].get(tgt)
+            if cell is None:
+                line += f"  {'-':>11}"
+            else:
+                line += f"  {cell['mean']:>5.2f}±{cell['std']:.2f}"
         print(line, flush=True)
 
 
