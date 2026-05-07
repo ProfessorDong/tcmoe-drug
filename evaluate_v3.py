@@ -11,6 +11,27 @@ from rdkit import Chem, RDLogger
 from rdkit.Chem import AllChem, Descriptors, Crippen, QED as QEDMod, DataStructs
 RDLogger.DisableLog('rdApp.*')
 
+# Optional: SA scorer (Ertl 2009). Falls back to None if unavailable.
+try:
+    import importlib.util
+    _sa_spec = importlib.util.find_spec("sascorer")
+    if _sa_spec is None:
+        # Try the rdkit Contrib path
+        import os as _os, sys as _sys
+        _contrib = _os.path.join(
+            _os.path.dirname(Chem.__file__), "Contrib", "SA_Score")
+        if _os.path.exists(_contrib):
+            _sys.path.insert(0, _contrib)
+    import sascorer
+    def compute_sa(mol):
+        try:
+            return float(sascorer.calculateScore(mol))
+        except Exception:
+            return None
+except ImportError:
+    def compute_sa(mol):
+        return None
+
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 def smi2fp(smi, nbits=1024):
@@ -164,10 +185,11 @@ def evaluate_target(target, output_dir, n_mols=10000):
                 with torch.no_grad():
                     p = predictor(x, task_name='pIC50')['pIC50'].item()
                 pic50s.append(p)
+                sa = compute_sa(mol)
                 rows.append({
                     'smiles': smi, 'qed': round(qed, 4), 'logp': round(logp, 4),
                     'mw': round(mw, 2), 'lipinski': int(lip), 'pred_pIC50': round(p, 4),
-                    'sa_approx': round(2.5, 1),
+                    'sa': round(sa, 2) if sa is not None else None,
                 })
         except Exception:
             pass
