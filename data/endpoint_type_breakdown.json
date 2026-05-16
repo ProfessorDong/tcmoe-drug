@@ -1,0 +1,64 @@
+{
+  "scd1": {
+    "target": "scd1",
+    "training_compounds": 626,
+    "matched_smiles": 626,
+    "unmatched_smiles": 0,
+    "breakdown_by_smiles_dominant_type": {
+      "IC50": 626
+    },
+    "breakdown_by_record": {
+      "IC50": 793
+    }
+  },
+  "nk1r": {
+    "target": "nk1r",
+    "training_compounds": 3056,
+    "matched_smiles": 2772,
+    "unmatched_smiles": 284,
+    "breakdown_by_smiles_dominant_type": {
+      "IC50": 1819,
+      "Ki": 879,
+      "Kd": 61,
+      "EC50": 13
+    },
+    "breakdown_by_record": {
+      "IC50": 2305,
+      "Ki": 1208,
+      "Kd": 121,
+      "EC50": 22
+    }
+  },
+  "drd2": {
+    "target": "drd2",
+    "training_compounds": 9966,
+    "matched_smiles": 9966,
+    "unmatched_smiles": 0,
+    "breakdown_by_smiles_dominant_type": {
+      "Ki": 8864,
+      "IC50": 802,
+      "EC50": 261,
+      "Kd": 39
+    },
+    "breakdown_by_record": {
+      "Ki": 13057,
+      "EC50": 1572,
+      "IC50": 1184,
+      "Kd": 129
+    }
+  },
+  "fads": {
+    "target": "fads",
+    "training_compounds": 1187,
+    "matched_smiles": 60,
+    "unmatched_smiles": 1127,
+    "breakdown_by_smiles_dominant_type": {
+      "IC50": 59,
+      "Kd": 1
+    },
+    "breakdown_by_record": {
+      "IC50": 70,
+      "Kd": 1
+    }
+  }
+}

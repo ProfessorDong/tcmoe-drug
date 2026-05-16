@@ -1,9 +1,9 @@
 # tcmoe-drug
 
-**Target-Conditioned Multi-View Mixture-of-Experts for Few-Shot Drug Discovery**
+**Target-Conditioned Multi-View Mixture-of-Experts for Few-Shot Learning in Drug Discovery**
 
 Reference implementation for the IEEE JBHI manuscript *"Target-Conditioned
-Multi-View Mixture-of-Experts for Few-Shot Drug Discovery"* (Dong et al.).
+Multi-View Mixture-of-Experts for Few-Shot Learning in Drug Discovery"* (Dong et al.).
 Hosted at [github.com/ProfessorDong/tcmoe-drug](https://github.com/ProfessorDong/tcmoe-drug).
 
 The framework couples a dual-representation encoder (graph attention network +
@@ -81,21 +81,21 @@ python verify_tables.py
 To regenerate everything from scratch:
 
 ```bash
-# Within-target ablation (Table II)
+# Within-target ablation (Table VI)
 python run_moe_predictor.py --experiment ablation
 
-# Few-shot leave-one-target-out for each held-out target (Table III)
+# Few-shot leave-one-target-out for each held-out target (Table II)
 for held in scd1 fads drd2 nk1r; do
     python run_moe_predictor.py --experiment fewshot --held_out $held
 done
 
-# Top-K and target-conditioning ablation (Table V)
+# Top-K and target-conditioning ablation (Table VIII)
 python run_moe_predictor.py --experiment topk
 
-# Cross-target selectivity (Table VI)
+# Cross-target selectivity (Table VII)
 python run_moe_predictor.py --experiment selectivity
 
-# MAML negative-result baseline (Table III(a)-(b) MAML rows)
+# MAML negative-result baseline (Table II(a)-(b) MAML rows)
 python run_meta_learning.py --held_out scd1
 python run_meta_learning.py --held_out fads2_expanded
 
@@ -104,6 +104,24 @@ python run_moe_figures.py        # Fig 2 + Fig 5
 python generate_paper_figures.py # Fig 3
 python run_interpretability.py   # Fig 4 source data
 ```
+
+## ChEMBL endpoint-type breakdown (Table I caption)
+
+The Table I caption reports the per-target mix of IC50, Ki, EC50, and Kd
+records in each training set (notably DRD2 is 89% Ki rather than IC50). To
+regenerate the breakdown:
+
+```bash
+python data/query_chembl_breakdown.py
+```
+
+This re-queries ChEMBL for each target by UniProt accession, canonicalises
+SMILES with RDKit, matches against the training-set SMILES, and writes
+`data/endpoint_type_breakdown.json`. A frozen snapshot is committed in
+the repository for users who do not want to wait on the ChEMBL API
+(~25 min total across the four targets). The pIC50 training labels are
+unchanged by this audit — only the per-target endpoint composition is
+disclosed.
 
 Default seeds: 5 random seeds per experiment, deterministic under PyTorch.
 Each leave-one-target-out fewshot run takes ~5–10 min on a single RTX 4090,
@@ -115,7 +133,7 @@ If you use this code or the result protocols, please cite:
 
 ```bibtex
 @article{dong2026target,
-  title   = {Target-Conditioned Multi-View Mixture-of-Experts for Few-Shot Drug Discovery},
+  title   = {Target-Conditioned Multi-View Mixture-of-Experts for Few-Shot Learning in Drug Discovery},
   author  = {Dong, Liang and Ding, Tianqi and Gonzalez, Paulina and {\"O}z, Orhan K. and Sun, Xiankai},
   journal = {IEEE Journal of Biomedical and Health Informatics},
   year    = {2026},
